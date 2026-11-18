@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AH-DELIV-FWK v3.0.0 — Deliverables Framework</title>
+<style>
+:root{--bg:#0B111A;--panel:#172435;--side:#111C2A;--line:#2C4059;--tx:#E8EDF5;--mu:#9CAFC5;--ac:#68B5FF;--sel:#24466B;--ok:#4ADE80;--bad:#F87171;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#F3F6FA;--panel:#fff;--side:#E8EEF5;--line:#C9D5E3;--tx:#14202E;--mu:#5A6B80;--ac:#0B66C3;--sel:#CFE3F8;--ok:#15803D;--bad:#B91C1C;color-scheme:light}}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.55 "Segoe UI",system-ui,sans-serif;display:flex;min-height:100vh}
+nav{width:220px;background:var(--side);border-right:1px solid var(--line);padding:16px 10px;position:sticky;top:0;height:100vh;overflow:auto;flex:none}
+nav h1{font-size:15px;margin:0 8px 14px;color:var(--ac)}nav h1 small{display:block;color:var(--mu);font-weight:400}
+nav button{display:block;width:100%;text-align:left;background:none;border:0;color:var(--tx);padding:10px 12px;border-radius:7px;font:inherit;cursor:pointer;margin:2px 0}
+nav button:hover{background:var(--sel)}nav button.on{background:var(--sel);font-weight:600}
+main{flex:1;min-width:0;padding:28px;max-width:960px}
+h2{font-size:24px;margin:0 0 4px}.sub{color:var(--mu);margin:0 0 20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.grid .card{margin:0}.card h3{margin:0 0 6px;font-size:15px;color:var(--ac)}
+label{display:block;font-size:13px;color:var(--mu);margin:10px 0 3px}
+input,select,textarea{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--line);border-radius:7px;padding:8px;font:inherit}
+textarea{min-height:90px;font-family:Consolas,monospace;font-size:13px}
+.btn{background:var(--ac);color:#06121f;border:0;border-radius:7px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer;margin:8px 8px 0 0}
+.btn.alt{background:none;color:var(--tx);border:1px solid var(--line)}
+.gate{display:flex;gap:10px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;cursor:pointer;background:var(--panel)}
+.gate.pass{border-color:var(--ok)}.gate.lock{opacity:.5}
+.tag{font-size:11px;padding:2px 7px;border-radius:9px;border:1px solid var(--line);color:var(--mu)}
+.pill{display:inline-block;padding:6px 12px;border-radius:16px;border:1px solid var(--line);margin:3px;cursor:pointer;background:none;color:var(--tx);font:inherit}
+.pill.on{background:var(--sel);border-color:var(--ac)}
+.bar{height:8px;background:var(--bg);border-radius:4px;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--ok);width:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.msg{padding:10px;border-radius:8px;border:1px solid var(--line);margin-top:10px;color:var(--mu)}
+.scroll{overflow-x:auto}
+@media(max-width:760px){body{display:block}nav{width:auto;height:auto;position:static;display:flex;flex-wrap:wrap;border:0;border-bottom:1px solid var(--line)}nav h1{width:100%}nav button{width:auto}main{padding:16px}}
+</style></head><body>
+<nav id="nav"><h1>AH-DELIV-FWK<small>v3.0.0 · parent: AH-AIOS</small></h1></nav>
+<main id="main"></main>
+<script>
+const $=(s,r=document)=>r.querySelector(s),esc=t=>String(t).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const store={get(k,d){try{const v=localStorage.getItem('dfw:'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('dfw:'+k,JSON.stringify(v))}catch(e){}}};
+const LAWS=[["Identity","Every deliverable has a stable ID, version, status, classification, owners, hashes and change log. A filename is not an identity."],["Preservation","Preserve a verifiable, restorable prior state before any consequential change. Never overwrite a known-good EXE until its replacement is accepted."],["Scope control","Declare what will and will not change, dependencies, expected behavior before and after, and the rollback method."],["Evidence","Every important claim needs inspectable evidence: test, environment, artifact, timestamp, result."],["Traceability","Source → evidence → claim → decision → requirement → criterion → test → artifact → release, in both directions."],["Verification","Match checks to real risk. A successful compile proves only that the compiler accepted the source."],["Authority","AI may analyze, propose, generate and execute authorized tasks. Protected decisions need authorized humans."],["Controlled release","Release is its own decision, separate from development completion."]];
+const GATES=[["Generated","An artifact exists.",0],["Built","Compiler, packager or generator completed.",0],["Tested","Required tests executed and produced results.",0],["Verified","Results checked against acceptance criteria and evidence.",0],["Accepted","An authorized human accepted it.",1],["Release authorized","Release separately authorized.",1],["Deployed","Placed into a target environment.",0],["Production-ready","Operational readiness separately established.",0]];
+const LIFE=[["DRAFT","Work exists but is not ready for formal review."],["REVIEW","Ready for authorized review."],["APPROVED","An authorized authority accepted it."],["SUPERSEDED","A newer approved version replaces it."],["RETIRED","No longer active or usable."],["REJECTED","Reviewed and not accepted."],["DEFERRED","Intentionally postponed."],["BLOCKED","Required evidence, authorization or dependency is missing."]];
+const CLASSES={Cosmetic:["Text, color, spacing, label, icon","Visual verification; no functional regression unless UI behavior changes."],Functional:["New button, route, form, calculation, command","Backup, scoped change, functional test, regression check."],Structural:["Routing, state management, architecture, component hierarchy","Baseline, architecture review, full route/page test, rollback plan."],Data:["Schema, migration, persistence, import/export","Schema validation, migration test, backup, data-integrity check."],Security:["Authentication, permissions, secrets, API access","Threat review, authorization test, fail-closed test, audit evidence."],Integration:["API, service, external system, provider connection","Contract test, failure test, version compatibility check."],Release:["EXE replacement, deployment, publication","Versioned artifact, hash, acceptance, separate release authorization."]};
+const CHECKS=[["Compile","Does it build?"],["Static","Are types, imports, schemas and contracts valid?"],["Functional","Does the new capability work?"],["Regression","Did anything previously working break?"],["Visual","Does the interface remain correct?"],["Data","Is data preserved and valid?"],["Security","Do unauthorized actions fail closed?"],["Performance","Is performance acceptable?"],["Recovery","Does the prior state restore successfully?"],["Acceptance","Is explicit acceptance recorded?"]];
+const DONE=["All required contracts and schemas implemented","Required workflows execute","Validation works","Traceability maintained","Approval integration works","Security and authorization tests pass","End-to-end execution demonstrated","Actual evidence and artifact hashes recorded","Deliverable bundle satisfies AH-DELIV-FWK"];
+const RULES=["Never change what you cannot restore.","Never build what you have not scoped.","Never test only the new feature.","Never overwrite the known-good version.","Never call a build complete.","Never claim acceptance without the authorized user.","Never let an AI approve its own work."];
+const copy=async(id,b)=>{const t=$('#'+id);t.select();try{await navigator.clipboard.writeText(t.value);b.textContent='Copied'}catch(e){document.execCommand&&document.execCommand('copy');b.textContent='Selected — press Ctrl+C'}};
+window.copy=copy;
+const V={};
+V.overview=()=>`<h2>Overview</h2><p class="sub">Work must never become invisible, unverifiable or irreversible.</p>
+<div class="card"><b>Central principle.</b> A deliverable is complete only when its identity, content, evidence, validation, traceability, approval state and release boundary are explicit.</div>
+<div class="grid">${LAWS.map((l,i)=>`<div class="card"><h3>Law ${i+1} — ${l[0]}</h3>${l[1]}</div>`).join('')}</div>
+<div class="card" style="margin-top:14px"><h3>Practical operating rules</h3><ol>${RULES.map(r=>`<li>${r}</li>`).join('')}</ol></div>`;
+V.lifecycle=()=>{const g=store.get('gates',[]),cur=store.get('life','DRAFT');
+return `<h2>Lifecycle & completion gates</h2><p class="sub">Generated ≠ Verified ≠ Accepted ≠ Released ≠ Production-ready.</p>
+<div class="card"><h3>Lifecycle status</h3><div>${LIFE.map(s=>`<button class="pill ${s[0]==cur?'on':''}" data-life="${s[0]}">${s[0]}</button>`).join('')}</div><div class="msg" id="lm">${LIFE.find(s=>s[0]==cur)[1]} Lifecycle status does not imply production readiness.</div></div>
+<div class="card"><h3>Completion gates</h3><p class="sub" style="margin-bottom:8px">Gates unlock in order. Tag “human” gates need an authorized person — no script or AI may tick them.</p>
+${GATES.map((x,i)=>{const p=g.includes(i),l=!p&&i>0&&!g.includes(i-1);return `<div class="gate ${p?'pass':''} ${l?'lock':''}" data-g="${i}"><span>${p?'✅':l?'🔒':'⬜'}</span><div style="flex:1"><b>${x[0]}</b><br><small style="color:var(--mu)">${x[1]}</small></div>${x[2]?'<span class="tag">human</span>':''}</div>`}).join('')}
+<div class="msg">${g.length==8?'All gates recorded. Each was still a separate decision.':g.length>=4?'Verified or beyond — acceptance and release are still separate decisions.':'A build succeeding is only one gate; it does not prove functionality, regression safety or recoverability.'}</div>
+<button class="btn alt" id="rg">Reset gates</button></div>`};
+V.classify=()=>{const c=store.get('cls','Functional');return `<h2>Change classifier</h2><p class="sub">Control scales with consequence. A routing change is structural, not cosmetic.</p>
+<div class="card">${Object.keys(CLASSES).map(k=>`<button class="pill ${k==c?'on':''}" data-cls="${k}">${k}</button>`).join('')}
+<h3 style="margin-top:14px">${c}</h3><p><b>Examples:</b> ${CLASSES[c][0]}</p><p><b>Minimum controls:</b> ${CLASSES[c][1]}</p></div>`};
+const CF=[["project","Project"],["id","Change ID"],["obj","Objective"],["in","In scope"],["out","Out of scope"],["allow","Files allowed to change"],["deny","Files prohibited from changing"],["backup","Required backup"],["before","Expected behavior before"],["after","Expected behavior after"],["acc","Acceptance criteria"],["ver","Verification method"],["reg","Regression requirements"],["rb","Rollback method"],["rel","Release policy"],["auth","Authorization required"],["evi","Evidence required"]];
+function contract(){const d=store.get('ct',{});return 'EXECUTION CONTRACT\n\n'+CF.map(f=>`${f[1]}: ${d[f[0]]||''}`).join('\n')+'\n\nBuild policy: Authorized and logged; candidate never overwrites release.'}
+V.contract=()=>{const d=store.get('ct',{});return `<h2>Execution contract</h2><p class="sub">Required before any consequential engineering change.</p>
+<div class="card"><div class="grid">${CF.map(f=>`<div><label>${f[1]}</label><input data-ct="${f[0]}" value="${esc(d[f[0]]||'').replace(/"/g,'&quot;')}"></div>`).join('')}</div></div>
+<div class="card"><h3>Generated contract</h3><textarea id="cto" readonly style="min-height:260px">${esc(contract())}</textarea><button class="btn" onclick="copy('cto',this)">Copy</button><div class="msg" id="cw"></div></div>`};
+V.verify=()=>{const v=store.get('vf',{}),n=Object.values(v).filter(x=>x=='pass').length;
+return `<h2>Verification matrix</h2><p class="sub">“Build succeeded” covers only the first row.</p>
+<div class="card"><div class="bar"><i style="width:${n*10}%"></i></div><b>${n}/10</b> checks passed
+<div class="scroll"><table style="width:100%;border-collapse:collapse;margin-top:8px">${CHECKS.map(c=>`<tr style="border-top:1px solid var(--line)"><td style="padding:8px"><b>${c[0]}</b></td><td>${c[1]}</td><td style="white-space:nowrap">${['pass','fail','n/a'].map(s=>`<button class="pill ${v[c[0]]==s?'on':''}" data-v="${c[0]}" data-s="${s}">${s}</button>`).join('')}</td></tr>`).join('')}</table></div>
+<div class="msg">${n==10?'All checks pass. Acceptance must still be recorded by an authorized human.':v.Compile=='pass'&&n==1?'Only Compile passed — this proves nothing about function, regression, recovery or acceptance.':'Mark each check with its actual result.'}</div><button class="btn alt" id="rv">Reset</button></div>
+<div class="card"><h3>Definition of done</h3>${DONE.map((x,i)=>`<label style="display:flex;gap:8px;color:var(--tx);margin:6px 0"><input type="checkbox" style="width:auto" data-d="${i}" ${(store.get('dn',[])).includes(i)?'checked':''}>${x}</label>`).join('')}</div>`};
+V.manifest=()=>`<h2>Manifest & checksums</h2><p class="sub">Hashes are computed in your browser (SHA-256). Files never leave your device.</p>
+<div class="card"><div class="grid"><div><label>Deliverable ID</label><input id="m_id" placeholder="DELIV-0001"></div><div><label>Bundle version</label><input id="m_v" value="0.1.0"></div><div><label>Deliverable type</label><input id="m_t" placeholder="specification / code / exe"></div><div><label>Classification</label><select id="m_c">${Object.keys(CLASSES).map(k=>`<option>${k}</option>`).join('')}</select></div><div><label>Author</label><input id="m_a"></div><div><label>Status</label><select id="m_s">${LIFE.map(s=>`<option>${s[0]}</option>`).join('')}</select></div></div>
+<label>Artifacts (choose files)</label><input type="file" id="m_f" multiple><button class="btn" id="mg">Generate manifest</button>
+<div class="msg">Reviewer, approver and approval date stay <b>null</b> — only a real review and approval may fill them.</div></div>
+<div class="card"><h3>manifest.json</h3><textarea id="mo" readonly style="min-height:220px"></textarea><button class="btn" onclick="copy('mo',this)">Copy</button>
+<h3 style="margin-top:14px">checksums.txt</h3><textarea id="co" readonly></textarea><button class="btn" onclick="copy('co',this)">Copy</button>
+<p class="sub" style="margin-top:10px">Policy: checksums.txt lists artifacts only; the manifest records them and is hashed last, separately, to avoid recursive self-reference.</p></div>`;
+const hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+async function genManifest(){const fs=[...$('#m_f').files],arts=[];
+for(const f of fs){let h='unavailable';try{h=hex(await crypto.subtle.digest('SHA-256',await f.arrayBuffer()))}catch(e){}arts.push({path:'artifacts/'+f.name,type:f.type||'unknown',bytes:f.size,sha256:h})}
+const m={deliverable_id:$('#m_id').value||null,bundle_version:$('#m_v').value,date:new Date().toISOString().slice(0,10),status:$('#m_s').value,classification:$('#m_c').value,deliverable_type:$('#m_t').value||null,parent_framework:'AH-DELIV-FWK-001 v3.0.0',author:$('#m_a').value||null,reviewer:null,approver:null,approval_date:null,traceability_references:store.get('tr',[]),artifacts:arts,evidence_references:CHECKS.map(c=>({check:c[0],result:store.get('vf',{})[c[0]]||'not recorded'})),completion_gates:GATES.filter((x,i)=>store.get('gates',[]).includes(i)).map(x=>x[0]),change_log:[]};const w=[];if(['APPROVED','SUPERSEDED'].includes(m.status))w.push('Status '+m.status+' but reviewer and approver are null: record a real review and approval before relying on it.');if(!arts.length)w.push('No artifacts were hashed.');if(m.traceability_references.some(x=>!TRF.every(f=>x[f[0]])))w.push('Traceability has gaps.');if(w.length)m._warnings=w;
+$('#mo').value=JSON.stringify(m,null,2);$('#co').value=arts.map(a=>`${a.sha256}  ${a.path}`).join('\n')||'(no artifacts selected)'}
+const TABS=[["overview","Overview"],["lifecycle","Lifecycle & gates"],["classify","Change classifier"],["contract","Execution contract"],["verify","Verification & done"],["manifest","Manifest builder"],["trace","Traceability"],["promote","Promotion & release"],["agents","Agent boundaries"],["data","Save / load"]];
+let tab=(location.hash||'#overview').slice(1);if(!V[tab])tab='overview';
+function render(){$('#nav').innerHTML=`<h1>AH-DELIV-FWK<small>v3.0.0 · parent: AH-AIOS</small></h1>`+TABS.map(t=>`<button class="${t[0]==tab?'on':''}" data-t="${t[0]}">${t[1]}</button>`).join('');$('#main').innerHTML=V[tab]();if(tab=='contract')warn();}
+function warn(){const d=store.get('ct',{});const miss=['out','deny','backup','rb'].filter(k=>!d[k]);$('#cw').textContent=miss.length?'Incomplete: out-of-scope, prohibited files, backup and rollback are required before work starts.':'Contract complete. Authorization is still required.'}
+addEventListener('hashchange',()=>{const t=location.hash.slice(1);if(V[t]){tab=t;render()}});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-t],[data-life],[data-g],[data-cls],[data-v],#rg,#rv,#mg');if(!t)return;
+if(t.dataset.t){location.hash=t.dataset.t;tab=t.dataset.t}
+else if(t.dataset.life)store.set('life',t.dataset.life);
+else if(t.dataset.g!==undefined){let g=store.get('gates',[]),i=+t.dataset.g;if(g.includes(i))g=g.filter(x=>x<i);else if(i==0||g.includes(i-1))g.push(i);store.set('gates',g)}
+else if(t.dataset.cls)store.set('cls',t.dataset.cls);
+else if(t.dataset.v){const v=store.get('vf',{});v[t.dataset.v]=t.dataset.s;store.set('vf',v)}
+else if(t.id=='rg')store.set('gates',[]);else if(t.id=='rv'){store.set('vf',{});store.set('dn',[])}
+else if(t.id=='mg'){genManifest();return}
+render()});
+document.addEventListener('input',e=>{const t=e.target;if(t.dataset.ct){const d=store.get('ct',{});d[t.dataset.ct]=t.value;store.set('ct',d);$('#cto').value=contract();warn()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.d!==undefined){let d=store.get('dn',[]),i=+t.dataset.d;d=t.checked?[...d,i]:d.filter(x=>x!=i);store.set('dn',d)}});
+const TRF=[["req","Requirement"],["origin","Origin / source"],["crit","Acceptance criterion"],["test","Test"],["ev","Execution evidence"]];
+const snap=()=>{const o={};try{for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('dfw:'))o[k]=localStorage.getItem(k)}}catch(e){}return o};
+const sha=async f=>hex(await crypto.subtle.digest('SHA-256',await f.arrayBuffer()));
+let PM='',CONF=0;
+V.trace=()=>{const r=store.get('tr',[]),ok=r.filter(x=>TRF.every(f=>x[f[0]])).length;return `<h2>Traceability</h2><p class="sub">Source → requirement → criterion → test → evidence. Gaps are flagged, not hidden.</p>
+<div class="card"><div class="grid">${TRF.map(f=>`<div><label>${f[1]}</label><input id="t_${f[0]}"></div>`).join('')}</div><button class="btn" id="tadd">Add link</button></div>
+<div class="card"><div class="bar"><i style="width:${r.length?ok/r.length*100:0}%"></i></div><b>${ok}/${r.length}</b> fully traced<div class="scroll"><table style="width:100%;border-collapse:collapse;margin-top:8px"><tr>${TRF.map(f=>`<th style="text-align:left;padding:6px;color:var(--mu)">${f[1]}</th>`).join('')}<th></th></tr>${r.map((x,i)=>`<tr style="border-top:1px solid var(--line)">${TRF.map(f=>`<td style="padding:6px">${x[f[0]]?esc(x[f[0]]):'<span style="color:var(--bad)">missing</span>'}</td>`).join('')}<td><button class="pill" data-tdel="${i}">✕</button></td></tr>`).join('')}</table></div></div>`};
+V.promote=()=>{const p=store.get('pm',{});const row=(t,x)=>`<div class="gate ${x?'pass':''}"><div style="flex:1"><b>${t}</b><br><small style="color:var(--mu)">${x?esc(x.name)+' · '+x.hash.slice(0,16)+'… · '+(x.by?'accepted by '+esc(x.by)+' · ':'')+x.date:'none'}</small></div></div>`;return `<h2>Promotion & release</h2><p class="sub">candidate → accepted → release. The release is a pointer; the previous release is kept for rollback.</p>
+<div class="card">${row('Candidate',p.cand)}${row('Accepted',p.acc)}${row('Release (current)',p.rel)}${row('Previous release (rollback)',p.prev)}</div>
+<div class="card"><h3>1. Register candidate</h3><input type="file" id="p_f"><button class="btn" id="pc">Hash & register</button></div>
+<div class="card"><h3>2. Accept candidate</h3><p class="sub">Needs the Verified gate and every check pass or n/a. Only an authorized human may do this.</p><label>Authorized acceptor (full name)</label><input id="p_n"><label style="display:flex;gap:8px;color:var(--tx)"><input type="checkbox" id="p_c" style="width:auto">I am an authorized human and verified this candidate in the actual application</label><button class="btn" id="pa">Accept</button></div>
+<div class="card"><h3>3. Release</h3><p class="sub">Needs an accepted artifact and the “Release authorized” gate (Lifecycle tab).</p><button class="btn" id="pr">Point release at accepted</button><button class="btn alt" id="pb">Roll back to previous</button><div class="msg">${PM||'No action yet.'}</div></div>`};
+V.agents=()=>`<h2>Agent boundaries</h2><p class="sub">AI agents operate within explicit limits. None may approve its own work.</p><div class="card scroll"><table style="width:100%;border-collapse:collapse">${[["Read source","Allowed within authorized scope",1],["Propose changes","Allowed",1],["Edit files","Limited to declared files",1],["Run builds","Authorized and logged",1],["Run tests","Required for functional changes",1],["Restore backup","Required rollback capability",1],["Overwrite release EXE","Prohibited without acceptance",0],["Claim completion","Prohibited without evidence",0],["Approve its own work","Prohibited",0]].map(a=>`<tr style="border-top:1px solid var(--line)"><td style="padding:8px"><b>${a[0]}</b></td><td>${a[2]?'✅':'⛔'} ${a[1]}</td></tr>`).join('')}</table></div>`;
+V.data=()=>`<h2>Save / load</h2><p class="sub">Work is stored in this browser only. Export it to keep it or move it to another device.</p><div class="card"><button class="btn" id="sx">Download state (.json)</button><label>Import state</label><input type="file" id="sf" accept=".json"><label>Current state</label><textarea id="so" readonly style="min-height:160px">${esc(JSON.stringify(snap(),null,2))}</textarea><button class="btn alt" onclick="copy('so',this)">Copy</button><button class="btn alt" id="sr">Erase all saved data</button><div class="msg">${PM||'Nothing pending.'}</div></div>`;
+document.addEventListener('click',e=>{if(e.target.closest('[data-t]'))PM='';CONF=0},true);
+document.addEventListener('click',async e=>{const t=e.target.closest('#tadd,[data-tdel],#pc,#pa,#pr,#pb,#sx,#sr');if(!t)return;const p=store.get('pm',{}),g=store.get('gates',[]),now=new Date().toISOString().slice(0,10);
+try{
+if(t.id=='tadd'){const o={};TRF.forEach(f=>o[f[0]]=$('#t_'+f[0]).value.trim());if(!o.req)return;const r=store.get('tr',[]);r.push(o);store.set('tr',r)}
+else if(t.dataset.tdel!==undefined){const r=store.get('tr',[]);r.splice(+t.dataset.tdel,1);store.set('tr',r)}
+else if(t.id=='pc'){const f=$('#p_f').files[0];if(!f)PM='Choose a file first.';else{p.cand={name:f.name,hash:await sha(f),date:now};store.set('pm',p);PM='Candidate registered. Nothing is accepted yet.'}}
+else if(t.id=='pa'){const v=store.get('vf',{}),bad=CHECKS.filter(c=>!['pass','n/a'].includes(v[c[0]])).map(c=>c[0]),n=$('#p_n').value.trim();
+if(!p.cand)PM='Register a candidate first.';else if(!g.includes(3))PM='Blocked: the Verified gate is not recorded.';else if(bad.length)PM='Blocked: checks not passed — '+bad.join(', ');else if(!n||!$('#p_c').checked)PM='Blocked: an authorized human must enter their name and confirm.';
+else{p.acc={...p.cand,by:n,date:now};store.set('pm',p);if(!g.includes(4))store.set('gates',[...g,4]);PM='Accepted. Release is still a separate decision.'}}
+else if(t.id=='pr'){if(!p.acc)PM='Blocked: nothing has been accepted.';else if(!g.includes(5))PM='Blocked: the “Release authorized” gate is not recorded (Lifecycle tab, human decision).';else{if(p.rel)p.prev=p.rel;p.rel={...p.acc,date:now};store.set('pm',p);PM='Release pointer updated; previous release kept for rollback. Deployment is still separate.'}}
+else if(t.id=='pb'){if(!p.prev)PM='No previous release to restore.';else{p.rel=p.prev;delete p.prev;store.set('pm',p);PM='Rolled back to the previous release.'}}
+else if(t.id=='sx'){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(snap(),null,2)],{type:'application/json'}));a.download='ah-deliv-fwk-state.json';a.click();return}
+else if(t.id=='sr'){if(CONF){Object.keys(snap()).forEach(k=>localStorage.removeItem(k));CONF=0;PM='All saved data erased.'}else{CONF=1;t.textContent='Click again to erase everything';return}}
+}catch(err){PM='Action failed: '+err.message}
+render()});
+document.addEventListener('change',async e=>{if(e.target.id!='sf')return;try{const o=JSON.parse(await e.target.files[0].text());Object.keys(o).filter(k=>k.startsWith('dfw:')).forEach(k=>localStorage.setItem(k,o[k]));PM='State imported.'}catch(err){PM='Import failed: not a valid state file.'}render()});
+{const h=location.hash.slice(1);if(V[h])tab=h}
+render();
+</script></body></html>
